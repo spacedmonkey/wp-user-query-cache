@@ -13,17 +13,17 @@ Before installing, make sure you have object caching enabled, other this caching
 
 1. Copy `class-wp-user-query.php` in with `wp-includes` 
 1. Copy `wp-user-query-cache.php` in `mu-plugins` directory
-1. That's it
+1. That's it!
 
 
-Required merged for core
+Core Tickets
 ==================
 - Add a filter for user query - [#45153](https://core.trac.wordpress.org/ticket/45153)
-- 
-Add `$this` to found_users_query filter - [#43679](https://core.trac.wordpress.org/ticket/43679)
-- 
-Add new filter to WP_User_Query - [#43680](https://core.trac.wordpress.org/ticket/43680)
+- Add `$this` to found_users_query filter - [#43679](https://core.trac.wordpress.org/ticket/43679)
+- Add new filter to WP_User_Query - [#43680](https://core.trac.wordpress.org/ticket/43680)
 
-Also worth referencing 
+Reference
+========
 
-- [#44169](https://core.trac.wordpress.org/ticket/44169)
+- New filter to short circuit WP_User_Query results - [#44169](https://core.trac.wordpress.org/ticket/44169)
+- Add caching to WP_User_query - [#41847](https://core.trac.wordpress.org/ticket/41847)
