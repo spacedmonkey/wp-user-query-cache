@@ -27,6 +27,8 @@ if ( ! defined( 'WPINC' ) ) {
 }
 
 class WP_User_Query_Cache {
+  public $cache                = false;
+  public $cache_key            = false;
 
 	public function __construct() {
 
@@ -151,8 +153,6 @@ class WP_User_Query_Cache {
 		if ( false !== $this->cache ) {
 			$results                    = $this->cache['users'];
 			$wp_user_query->total_users = (int) $this->cache['total_users'];
-			$this->cache                = false;
-			$this->cache_key            = false;
 		} else {
 			$data = array(
 				'users'       => (array) $results,
@@ -160,6 +160,8 @@ class WP_User_Query_Cache {
 			);
 			wp_cache_set( $this->cache_key, $data, 'users' );
 		}
+		$this->cache                = false;
+		$this->cache_key            = false;
 
 		return $results;
 	}
@@ -189,14 +191,18 @@ class WP_User_Query_Cache {
 	 * @return string
 	 */
 	public function users_request( $query, $wp_user_query ) {
-		$cache_key       = md5( $query );
+		global $wpdb;
+
+		$sql             = $wpdb->remove_placeholder_escape( $query );
+		$cache_key       = md5( $sql );
 		$cache_salt      = $this->get_cache_salt( $wp_user_query );
 		$this->cache_key = $cache_key . $cache_salt;
 		$this->cache     = wp_cache_get( $this->cache_key, 'users' );
 		if ( false !== $this->cache ) {
 			$query = '';
+			// This is a hack to stop a count notice error.
+			$wpdb->last_result = array();
 		}
-
 		return $query;
 	}
 
@@ -205,7 +211,7 @@ class WP_User_Query_Cache {
 	 *
 	 * @return array
 	 */
-	private function get_user_site_ids( $user_id ) {
+	public function get_user_site_ids( $user_id ) {
 		global $wpdb;
 
 		$site_ids = array();
@@ -215,15 +221,13 @@ class WP_User_Query_Cache {
 		}
 
 		// Logged out users can't have sites
-		if ( empty( $user_id ) ) {
-			$keys = get_user_meta( $user_id );
-		}
+		$keys = get_user_meta( $user_id );
 
 		if ( empty( $keys ) ) {
 			return $site_ids;
 		}
 		if ( ! is_multisite() ) {
-			$site_id[] = get_current_blog_id();
+			$site_ids[] = get_current_blog_id();
 
 			return $site_ids;
 		}
@@ -266,14 +270,14 @@ class WP_User_Query_Cache {
 	private function get_cache_salt( $wp_user_query ) {
 		$qv    = $wp_user_query->query_vars;
 		$group = 'users';
-		if ( $qv['blog_id'] ) {
+		if ( isset($qv['blog_id']) && $qv['blog_id'] ) {
 			$cache_key_site = $this->site_cache_key( $qv['blog_id'] );
 			$salt           = wp_cache_get( $cache_key_site, $group );
 			if ( ! $salt ) {
 				$salt = microtime();
 				wp_cache_set( $cache_key_site, microtime(), $group );
 			}
-			if ( $qv['has_published_posts'] ) {
+			if ( isset($qv['has_published_posts']) && $qv['has_published_posts'] ) {
 				switch_to_blog( $qv['blog_id'] );
 				$salt .= wp_cache_get_last_changed( 'posts' );
 				restore_current_blog();
