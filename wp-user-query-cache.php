@@ -47,11 +47,12 @@ class WP_User_Query_Cache {
 		add_action( 'make_spam_user', array( $this, 'clear_user' ), 8, 1 );
 		add_action( 'add_user_to_blog', array( $this, 'add_user_to_blog' ), 8, 3 );
 		add_action( 'remove_user_from_blog', array( $this, 'remove_user_from_blog' ), 8, 2 );
-		add_action( 'wpmu_new_blog', array( $this, 'clear_site' ), 8, 1 );
-		add_action( 'deleted_blog', array( $this, 'clear_site' ), 8, 1 );
+		add_action( 'wp_insert_site', array( $this, 'clear_site' ), 8, 1 );
+		add_action( 'wp_delete_site', array( $this, 'clear_site' ), 8, 1 );
 
 		// Different params
 		add_action( 'after_password_reset', array( $this, 'after_password_reset' ), 8, 1 );
+		add_action( 'retrieve_password_key', array( $this, 'retrieve_password_key' ), 8, 1 );
 
 		// Meta api
 		add_action( "add_user_meta", array( $this, 'clear_user' ), 8, 1 );
@@ -79,9 +80,11 @@ class WP_User_Query_Cache {
 	/**
 	 * Clear site level cache salt
 	 *
-	 * @param $site_id
+	 * @param $site
 	 */
-	public function clear_site( $site_id ) {
+	public function clear_site( $site ) {
+		$site      = get_site( $site );
+		$site_id   = $site->id;
 		$cache_key = $this->site_cache_key( $site_id );
 		wp_cache_set( $cache_key, microtime(), 'users' );
 	}
@@ -126,6 +129,16 @@ class WP_User_Query_Cache {
 	 * @param $user
 	 */
 	public function after_password_reset( $user ) {
+		$this->clear_user( $user->ID );
+	}
+
+	/**
+	 * Clear cache after password is changed
+	 *
+	 * @param $user_login
+	 */
+	public function retrieve_password_key( $user_login ) {
+		$user = get_user_by( 'login', $user_login );
 		$this->clear_user( $user->ID );
 	}
 
