@@ -13,10 +13,10 @@
  * Plugin Name:        User Query caching
  * Plugin URI:         https://www.github.com/spacedmonkey/wp-user-query-cache
  * Description:        Cache the results of query in WP_User_Query to save SQL queries
- * Version:            0.0.1
+ * Version:            0.0.2
  * Author:             Jonathan Harris
  * Author URI:         http://www.spacedmonkey.com/
- * License:            GPL-2.0+
+ * License:            GPL v2 or later
  * License URI:        http://www.gnu.org/licenses/gpl-2.0.txt
  * GitHub Plugin URI:  https://www.github.com/spacedmonkey/wp-user-query-cache
  */
@@ -27,8 +27,8 @@ if ( ! defined( 'WPINC' ) ) {
 }
 
 class WP_User_Query_Cache {
-  public $cache                = false;
-  public $cache_key            = false;
+	public $cache = false;
+	public $cache_key = false;
 
 	public function __construct() {
 
@@ -42,16 +42,19 @@ class WP_User_Query_Cache {
 		// Most important filter
 		add_action( 'clean_user_cache', array( $this, 'clear_user' ), 8, 1 );
 
-		// Multisite filters
+		// Multisite User filters
 		add_action( 'wpmu_delete_user', array( $this, 'clear_user' ), 8, 1 );
 		add_action( 'make_spam_user', array( $this, 'clear_user' ), 8, 1 );
 		add_action( 'add_user_to_blog', array( $this, 'add_user_to_blog' ), 8, 3 );
 		add_action( 'remove_user_from_blog', array( $this, 'remove_user_from_blog' ), 8, 2 );
-		add_action( 'wpmu_new_blog', array( $this, 'clear_site' ), 8, 1 );
-		add_action( 'deleted_blog', array( $this, 'clear_site' ), 8, 1 );
+
+		// Multisite Site filters
+		add_action( 'wp_insert_site', array( $this, 'clear_site' ), 8, 1 );
+		add_action( 'wp_delete_site', array( $this, 'clear_site' ), 8, 1 );
 
 		// Different params
 		add_action( 'after_password_reset', array( $this, 'after_password_reset' ), 8, 1 );
+		add_action( 'retrieve_password_key', array( $this, 'retrieve_password_key' ), 8, 1 );
 
 		// Meta api
 		add_action( "add_user_meta", array( $this, 'clear_user' ), 8, 1 );
@@ -60,11 +63,9 @@ class WP_User_Query_Cache {
 
 		// User query filters
 		// Requires https://core.trac.wordpress.org/ticket/43680
-		add_filter( 'pre_users_results', array( $this, 'pre_users_results' ), 8, 2 );
+		add_filter( 'users_pre_query', array( $this, 'users_pre_query' ), 8, 2 );
 		// Requires https://core.trac.wordpress.org/ticket/43679
 		add_filter( 'found_users_query', array( $this, 'found_users_query' ), 8, 2 );
-		// Requires https://core.trac.wordpress.org/ticket/45153
-		add_filter( 'users_request', array( $this, 'users_request' ), 8, 2 );
 	}
 
 	/**
@@ -75,17 +76,33 @@ class WP_User_Query_Cache {
 	public function clear_user( $user_id ) {
 		$site_ids = $this->get_user_site_ids( $user_id );
 		array_map( array( $this, 'clear_site' ), $site_ids );
-		wp_cache_set( 'last_changed', microtime(), 'users' );
+		$this->update_last_change( 'last_changed' );
 	}
 
 	/**
 	 * Clear site level cache salt
 	 *
-	 * @param $site_id
+	 * @param $site int|WP_Site
 	 */
-	public function clear_site( $site_id ) {
+	public function clear_site( $site ) {
+		if ( $site instanceof WP_Site ) {
+			$site_id = $site->id;
+		} else if ( is_numeric( $site ) ) {
+			$site_id = $site;
+		} else {
+			return;
+		}
+
 		$cache_key = $this->site_cache_key( $site_id );
-		wp_cache_set( $cache_key, microtime(), 'users' );
+		$this->update_last_change( $cache_key );
+	}
+
+	/**
+	 * @param  $cache_key Cache key
+	 * @return $result of wp_cache_set
+	 */
+	private function update_last_change( $cache_key = 'last_changed' ){
+			return wp_cache_set( $cache_key, microtime(), 'users' );
 	}
 
 	/**
@@ -132,6 +149,16 @@ class WP_User_Query_Cache {
 	}
 
 	/**
+	 * Clear cache after password is changed
+	 *
+	 * @param $user_login
+	 */
+	public function retrieve_password_key( $user_login ) {
+		$user = get_user_by( 'login', $user_login );
+		$this->clear_user( $user->ID );
+	}
+
+	/**
 	 * On update / delete user meta, clear user cache
 	 *
 	 * @param $meta_id
@@ -147,21 +174,41 @@ class WP_User_Query_Cache {
 	 * @param $results
 	 * @param $wp_user_query
 	 *
-	 * @return mixed
+	 * @return array
 	 */
-	public function pre_users_results( $results, $wp_user_query ) {
-		if ( false !== $this->cache ) {
-			$results                    = $this->cache['users'];
+	public function users_pre_query( $results, $wp_user_query ) {
+		global $wpdb;
+
+		$qv =& $wp_user_query->query_vars;
+
+		$request = "SELECT $wp_user_query->query_fields $wp_user_query->query_from $wp_user_query->query_where $wp_user_query->query_orderby $wp_user_query->query_limit";
+		$request = $this->users_request( $request, $wp_user_query );
+
+		if ( ! $request ) {
+			$results                    = (array) $this->cache['users'];
 			$wp_user_query->total_users = (int) $this->cache['total_users'];
 		} else {
+
+			if ( is_array( $qv['fields'] ) || 'all' == $qv['fields'] ) {
+				$results = $wpdb->get_results( $request );
+			} else {
+				$results = $wpdb->get_col( $request );
+			}
+
+			if ( isset( $qv['count_total'] ) && $qv['count_total'] ) {
+				$wp_user_query->total_users = $wpdb->get_var( 'SELECT FOUND_ROWS()' );
+			} else {
+				$wp_user_query->total_users = 0;
+			}
+
 			$data = array(
 				'users'       => (array) $results,
 				'total_users' => (int) $wp_user_query->total_users,
 			);
 			wp_cache_set( $this->cache_key, $data, 'users' );
 		}
-		$this->cache                = false;
-		$this->cache_key            = false;
+		$this->cache     = false;
+		$this->cache_key = false;
 
 		return $results;
 	}
@@ -203,6 +250,7 @@ class WP_User_Query_Cache {
 			// This is a hack to stop a count notice error.
 			$wpdb->last_result = array();
 		}
+
 		return $query;
 	}
 
@@ -270,14 +318,14 @@ class WP_User_Query_Cache {
 	private function get_cache_salt( $wp_user_query ) {
 		$qv    = $wp_user_query->query_vars;
 		$group = 'users';
-		if ( isset($qv['blog_id']) && $qv['blog_id'] ) {
+		if ( isset( $qv['blog_id'] ) && $qv['blog_id'] ) {
 			$cache_key_site = $this->site_cache_key( $qv['blog_id'] );
 			$salt           = wp_cache_get( $cache_key_site, $group );
 			if ( ! $salt ) {
 				$salt = microtime();
 				wp_cache_set( $cache_key_site, microtime(), $group );
 			}
-			if ( isset($qv['has_published_posts']) && $qv['has_published_posts'] ) {
+			if ( isset( $qv['has_published_posts'] ) && $qv['has_published_posts'] ) {
 				switch_to_blog( $qv['blog_id'] );
 				$salt .= wp_cache_get_last_changed( 'posts' );
 				restore_current_blog();
