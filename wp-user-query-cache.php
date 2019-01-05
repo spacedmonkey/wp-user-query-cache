@@ -13,10 +13,10 @@
  * Plugin Name:        User Query caching
  * Plugin URI:         https://www.github.com/spacedmonkey/wp-user-query-cache
  * Description:        Cache the results of query in WP_User_Query to save SQL queries
- * Version:            0.0.1
+ * Version:            0.0.2
  * Author:             Jonathan Harris
  * Author URI:         http://www.spacedmonkey.com/
- * License:            GPL-2.0+
+ * License:            GPL v2 or later
  * License URI:        http://www.gnu.org/licenses/gpl-2.0.txt
  * GitHub Plugin URI:  https://www.github.com/spacedmonkey/wp-user-query-cache
  */
@@ -42,11 +42,13 @@ class WP_User_Query_Cache {
 		// Most important filter
 		add_action( 'clean_user_cache', array( $this, 'clear_user' ), 8, 1 );
 
-		// Multisite filters
+		// Multisite User filters
 		add_action( 'wpmu_delete_user', array( $this, 'clear_user' ), 8, 1 );
 		add_action( 'make_spam_user', array( $this, 'clear_user' ), 8, 1 );
 		add_action( 'add_user_to_blog', array( $this, 'add_user_to_blog' ), 8, 3 );
 		add_action( 'remove_user_from_blog', array( $this, 'remove_user_from_blog' ), 8, 2 );
+
+		// Multisite Site filters
 		add_action( 'wp_insert_site', array( $this, 'clear_site' ), 8, 1 );
 		add_action( 'wp_delete_site', array( $this, 'clear_site' ), 8, 1 );
 
@@ -74,19 +76,33 @@ class WP_User_Query_Cache {
 	public function clear_user( $user_id ) {
 		$site_ids = $this->get_user_site_ids( $user_id );
 		array_map( array( $this, 'clear_site' ), $site_ids );
-		wp_cache_set( 'last_changed', microtime(), 'users' );
+		$this->update_last_change( 'last_changed' );
 	}
 
 	/**
 	 * Clear site level cache salt
 	 *
-	 * @param $site
+	 * @param $site int|WP_Site
 	 */
 	public function clear_site( $site ) {
-		$site      = get_site( $site );
-		$site_id   = $site->id;
+		if ( $site instanceof WP_Site ) {
+			$site_id = $site->id;
+		} else if ( is_numeric( $site ) ) {
+			$site_id = $site;
+		} else {
+			return;
+		}
+
 		$cache_key = $this->site_cache_key( $site_id );
-		wp_cache_set( $cache_key, microtime(), 'users' );
+		$this->update_last_change( $cache_key );
+	}
+
+	/**
+	 * @param  $cache_key Cache key
+	 * @return $result of wp_cache_set
+	 */
+	private function update_last_change( $cache_key = 'last_changed' ){
+			return wp_cache_set( $cache_key, microtime(), 'users' );
 	}
 
 	/**
