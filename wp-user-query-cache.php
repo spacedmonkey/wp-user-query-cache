@@ -3,22 +3,20 @@
  * Cache the results of query in WP_User_Query to save SQL queries
  *
  *
- * @package   Advanced_Nav_Cache
- * @author    Jonathan Harris <jon@spacedmonkey.co.uk>
- * @license   GPL-2.0+
- * @link      http://www.spacedmonkey.com/
- * @copyright 2018 Spacedmonkey
+ * Plugin Name:     User Query caching
+ * Plugin URI:      https://github.com/spacedmonkey/wp-user-query-cache/
+ * Description:     Cache the results of query in WP_User_Query to save SQL queries
+ * Author:          Jonathan Harris
+ * Author URI:      https://www.spacedmonkey.com
+ * Text Domain:     wp-user-query-cache-1
+ * Domain Path:     /languages
+ * Version:         0.0.3
  *
- * @wordpress-plugin
- * Plugin Name:        User Query caching
- * Plugin URI:         https://www.github.com/spacedmonkey/wp-user-query-cache
- * Description:        Cache the results of query in WP_User_Query to save SQL queries
- * Version:            0.0.2
- * Author:             Jonathan Harris
- * Author URI:         http://www.spacedmonkey.com/
- * License:            GPL v2 or later
- * License URI:        http://www.gnu.org/licenses/gpl-2.0.txt
- * GitHub Plugin URI:  https://www.github.com/spacedmonkey/wp-user-query-cache
+ * @package         Wp_User_Query_Cache
+ * @author          Jonathan Harris <jon@spacedmonkey.co.uk>
+ * @license         GPL-2.0+
+ * @link            http://www.spacedmonkey.com/
+ * @copyright       2019 Spacedmonkey
  */
 
 // If this file is called directly, abort.
@@ -99,10 +97,11 @@ class WP_User_Query_Cache {
 
 	/**
 	 * @param  $cache_key Cache key
+	 *
 	 * @return $result of wp_cache_set
 	 */
-	private function update_last_change( $cache_key = 'last_changed' ){
-			return wp_cache_set( $cache_key, microtime(), 'users' );
+	private function update_last_change( $cache_key = 'last_changed' ) {
+		return wp_cache_set( $cache_key, microtime(), 'users' );
 	}
 
 	/**

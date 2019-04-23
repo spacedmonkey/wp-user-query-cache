@@ -4,14 +4,13 @@ Warning
 =======
 This plugin is just a feature plugin and should be considered a proof of concept for user query caching. For full information call at the WordPress core ticket [#40613](https://core.trac.wordpress.org/ticket/40613).
 
-This plugin add new UI, as it is an under the hood change.
+This plugin add new UI, as it is an under the hood change. This plugin requires WordPress 5.1.
 
 Instalation
 ================
 
 Before installing, make sure you have object caching enabled, other this caching plugin will do nothing.
 
-1. Copy `class-wp-user-query.php` in with `wp-includes` ( or wait until WordPress 5.1 to be released ).
 1. Copy `wp-user-query-cache.php` in `mu-plugins` directory
 1. That's it!
 

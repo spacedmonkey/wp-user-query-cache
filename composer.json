@@ -1,0 +1,21 @@
+{
+  "name": "spacedmonkey/wp-user-query-cache",
+  "description": "Cache the results of query in WP_User_Query to save SQL queries",
+  "homepage": "https://github.com/spacedmonkey/wp-user-query-cache",
+  "type": "wordpress-muplugin",
+  "license"    : "GPL-2.0-or-later",
+  "authors": [
+    {
+      "name": "Jonny Harris",
+      "email": "jon@spacedmonkey.co.uk"
+    }
+  ],
+  "support"    : {
+    "issues": "https://github.com/spacedmonkey/wp-user-query-cache/issues",
+    "source": "https://github.com/spacedmonkey/wp-user-query-cache"
+  },
+  "require": {
+    "php": ">=5.6",
+    "composer/installers": "~1.0"
+  }
+}
