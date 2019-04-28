@@ -64,6 +64,9 @@ class WP_User_Query_Cache {
 		add_filter( 'users_pre_query', array( $this, 'users_pre_query' ), 8, 2 );
 		// Requires https://core.trac.wordpress.org/ticket/43679
 		add_filter( 'found_users_query', array( $this, 'found_users_query' ), 8, 2 );
+
+		// User query count
+		add_filter( 'pre_count_users', array( $this, 'pre_count_users' ), 8, 3 );
 	}
 
 	/**
@@ -251,6 +254,56 @@ class WP_User_Query_Cache {
 		}
 
 		return $query;
+	}
+
+	/**
+	 * Hook into user count and force the lookup through wp_user_query to which is cached.
+	 *
+	 * @param null   $unused   Unused variable
+	 * @param string $strategy Unused variable
+	 * @param null   $site_id  Site ID to get list of count of users.
+	 *
+	 * @return array Array of user counts.
+	 */
+	public function pre_count_users( $unused = null, $strategy = 'time', $site_id = null ) {
+		$all_count = $this->get_user_count( $site_id );
+		$output    = array( 'total_users' => $all_count );
+		if ( is_multisite() && $site_id != get_current_blog_id() ) {
+			switch_to_blog( $site_id );
+			$avail_roles = wp_roles()->get_names();
+			restore_current_blog();
+		} else {
+			$avail_roles = wp_roles()->get_names();
+		}
+		foreach ( $avail_roles as $role => $name ) {
+			$counter = $this->get_user_count( $site_id, $role );
+			if ( $counter ) {
+				$output['avail_roles'][ $role ] = $counter;
+			}
+		}
+
+		return $output;
+	}
+
+	/**
+	 * Helper function to get count of users by sites and role
+	 *
+	 * @param int   $site_id  (Default null)
+	 * @param string $role (Default empty string)
+	 *
+	 * @return int
+	 */
+	protected function get_user_count( $site_id = null, $role = '' ) {
+		$args        = array(
+			'count_total' => true,
+			'number'      => 1,
+			'fields'      => 'ids',
+			'blog_id'     => $site_id,
+			'role'        => $role
+		);
+		$user_search = new WP_User_Query( $args );
+
+		return $user_search->total_users;
 	}
 
 	/**
