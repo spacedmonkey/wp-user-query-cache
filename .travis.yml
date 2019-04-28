@@ -52,6 +52,8 @@ before_script:
   - |
     if [[ "$WP_TRAVISCI" == "phpcs" ]] ; then
       composer install
+      vendor/bin/phpcs --config-set installed_paths vendor/wp-coding-standards/wpcs,vendor/phpcompatibility/phpcompatibility
+      vendor/bin/phpcs -i
     fi
 
 script:
