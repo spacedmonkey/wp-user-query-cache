@@ -19,8 +19,11 @@
     "composer/installers": "~1.0"
   },
   "require-dev": {
-    "phpcompatibility/phpcompatibility-wp": "^2.0",
-    "wp-coding-standards/wpcs": "^2.1",
-    "squizlabs/php_codesniffer": "*"
+    "oomphinc/composer-installers-extender": "^1.1",
+    "wp-coding-standards/wpcs": "*",
+    "automattic/vipwpcs": "*",
+    "phpcompatibility/php-compatibility": "*",
+    "phpcompatibility/phpcompatibility-paragonie": "*",
+    "phpcompatibility/phpcompatibility-wp": "*"
   }
 }
