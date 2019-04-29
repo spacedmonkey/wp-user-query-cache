@@ -9,7 +9,7 @@
  * Author URI:      https://www.spacedmonkey.com
  * Text Domain:     wp-user-query-cache
  * Domain Path:     /languages
- * Version:         0.0.3
+ * Version:         0.0.4
  *
  * @package         Wp_User_Query_Cache
  * @author          Jonathan Harris <jon@spacedmonkey.co.uk>
