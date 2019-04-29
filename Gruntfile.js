@@ -9,7 +9,7 @@ module.exports = function( grunt ) {
 
 		addtextdomain: {
 			options: {
-				textdomain: 'wp-user-query-cache-1',
+				textdomain: 'wp-user-query-cache',
 			},
 			update_all_domains: {
 				options: {
@@ -32,8 +32,8 @@ module.exports = function( grunt ) {
 				options: {
 					domainPath: '/languages',
 					exclude: [ '\.git/*', 'bin/*', 'node_modules/*', 'tests/*' ],
-					mainFile: 'wp-user-query-cache-1.php',
-					potFilename: 'wp-user-query-cache-1.pot',
+					mainFile: 'wp-user-query-cache.php',
+					potFilename: 'wp-user-query-cache.pot',
 					potHeaders: {
 						poedit: true,
 						'x-poedit-keywordslist': true
