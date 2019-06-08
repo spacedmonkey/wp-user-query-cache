@@ -26,5 +26,8 @@
     "phpcompatibility/phpcompatibility-paragonie": "*",
     "phpcompatibility/phpcompatibility-wp": "*",
     "dealerdirect/phpcodesniffer-composer-installer": "^0.4.3"
+  },
+  "suggest": {
+    "spacedmonkey/wp-user-roles": "Compatible with wp user query cache and improves user query performance. "
   }
 }
