@@ -26,4 +26,4 @@ if ( ! defined( 'WPINC' ) ) {
 require_once __DIR__ . '/src/class-wp-user-query-cache.php';
 
 // Setup the class.
-//  new WP_User_Query_Cache();
+new WP_User_Query_Cache();

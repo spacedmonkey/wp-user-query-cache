@@ -69,10 +69,8 @@ class WP_User_Query_Cache {
 		add_action( 'updated_user_meta', array( $this, 'updated_user_meta' ), 8, 2 );
 		add_action( 'deleted_user_meta', array( $this, 'updated_user_meta' ), 8, 2 );
 
-		// User query filters.
-		// Requires https://core.trac.wordpress.org/ticket/43680 .
+		// User query filters..
 		add_filter( 'users_pre_query', array( $this, 'users_pre_query' ), 8, 2 );
-		// Requires https://core.trac.wordpress.org/ticket/43679 .
 		add_filter( 'found_users_query', array( $this, 'found_users_query' ), 8, 2 );
 
 		// User query count.
@@ -93,7 +91,7 @@ class WP_User_Query_Cache {
 	/**
 	 * Clear site level cache salt.
 	 *
-	 * @param int|WP_Site $site  Site to clear, with object or id.
+	 * @param int|WP_Site $site Site to clear, with object or id.
 	 */
 	public function clear_site( $site ) {
 		if ( $site instanceof WP_Site ) {
@@ -134,7 +132,7 @@ class WP_User_Query_Cache {
 	 * When a use is added to a site, clear site and user level changes.
 	 *
 	 * @param int    $user_id User ID.
-	 * @param string $role Current user role.
+	 * @param string $role    Current user role.
 	 * @param int    $blog_id Blog ID.
 	 */
 	public function add_user_to_blog( $user_id, $role, $blog_id ) {
@@ -165,7 +163,7 @@ class WP_User_Query_Cache {
 	/**
 	 * Clear cache after password is changed
 	 *
-	 * @param String $user_login  Username string.
+	 * @param String $user_login Username string.
 	 */
 	public function retrieve_password_key( $user_login ) {
 		$user = get_user_by( 'login', $user_login );
@@ -185,7 +183,7 @@ class WP_User_Query_Cache {
 	/**
 	 * Hook into pre user results, to high jack results.
 	 *
-	 * @param null          $results         Pre Value.
+	 * @param null          $results       Pre Value.
 	 * @param WP_User_Query $wp_user_query WP User query object.
 	 *
 	 * @return array
@@ -276,21 +274,22 @@ class WP_User_Query_Cache {
 	 *
 	 * @return array Array of user counts.
 	 */
-	public function pre_count_users( $unused = null, $strategy = 'time', $site_id = null ) {
-		$all_count = $this->get_user_count( $site_id );
-		$output    = array( 'total_users' => $all_count );
-		if ( is_multisite() && get_current_blog_id() !== $site_id ) {
-			switch_to_blog( $site_id );
-			$avail_roles = wp_roles()->get_names();
-			restore_current_blog();
-		} else {
-			$avail_roles = wp_roles()->get_names();
+	public function pre_count_users( $output = null, $strategy = 'time', $site_id = null ) {
+		$cache_key_site = $this->site_cache_key( $site_id );
+		$salt           = wp_cache_get( $cache_key_site, 'users' );
+		if ( ! $salt ) {
+			$salt = microtime();
+			wp_cache_set( $cache_key_site, microtime(), 'users' );
 		}
-		foreach ( $avail_roles as $role => $name ) {
-			$counter = $this->get_user_count( $site_id, $role );
-			if ( $counter ) {
-				$output['avail_roles'][ $role ] = $counter;
-			}
+		$cache_key = 'count_users_' . $site_id . '_' . $salt;
+		$cache     = wp_cache_get( $cache_key, 'users' );
+		if ( ! $cache ) {
+			remove_filter( 'pre_count_users', array( $this, 'pre_count_users' ), 8, 3 );
+			$output = count_users( $strategy, $site_id );
+			wp_cache_set( $cache_key, $output, 'users' );
+			add_filter( 'pre_count_users', array( $this, 'pre_count_users' ), 8, 3 );
+		} else{
+			$output = $cache;
 		}
 
 		return $output;
