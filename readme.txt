@@ -1,6 +1,6 @@
 === WP User Query Cache ===
 Contributors: spacedmonkey
-Donate link: https://example.com/
+Donate link: https://github.com/sponsors/spacedmonkey
 Tags: comments, spam
 Requires at least: 5.2
 Tested up to: 5.2
